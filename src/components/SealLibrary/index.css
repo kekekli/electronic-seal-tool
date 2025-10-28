@@ -1,0 +1,51 @@
+.seal-library {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.library-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.seals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.seal-card {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.seal-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.seal-image-wrapper {
+  padding: 30px;
+  background: #fafafa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 240px;
+}
+
+.seal-image-wrapper img {
+  max-width: 100%;
+  height: auto;
+}

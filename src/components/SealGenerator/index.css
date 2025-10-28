@@ -1,0 +1,50 @@
+.seal-generator {
+  padding: 20px;
+}
+
+.generator-content {
+  display: flex;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.form-section {
+  flex: 1;
+  max-width: 500px;
+}
+
+.form-section h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.preview-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-section h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.canvas-wrapper {
+  border: 2px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 30px;
+  background: #fafafa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.canvas-wrapper canvas {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: white;
+}
