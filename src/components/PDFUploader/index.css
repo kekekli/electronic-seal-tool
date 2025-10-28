@@ -1,0 +1,34 @@
+.pdf-uploader {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.upload-card {
+  margin-bottom: 24px;
+}
+
+.upload-card .ant-upload-drag {
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: all 0.3s;
+}
+
+.upload-card .ant-upload-drag:hover {
+  border-color: #1890ff;
+  background: #e6f7ff;
+}
+
+.files-card {
+  border-radius: 8px;
+}
+
+.files-card .ant-list-item {
+  padding: 16px 0;
+}
+
+.files-card .ant-list-item-meta-avatar {
+  display: flex;
+  align-items: center;
+}

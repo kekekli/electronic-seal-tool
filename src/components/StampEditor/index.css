@@ -1,0 +1,54 @@
+.stamp-editor {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 180px);
+}
+
+.toolbar {
+  width: 280px;
+  flex-shrink: 0;
+  height: fit-content;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.toolbar-label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.preview-area {
+  flex: 1;
+  overflow: auto;
+}
+
+.preview-card {
+  height: 100%;
+}
+
+.preview-card .ant-card-body {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.canvas-container {
+  position: relative;
+  display: inline-block;
+}
+
+.seal-layer {
+  position: absolute;
+  pointer-events: auto;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+}
+
+.seal-layer:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}

@@ -7,11 +7,14 @@ import { ConfigProvider, Tabs } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import SealGenerator from './components/SealGenerator';
 import SealLibrary from './components/SealLibrary';
+import PDFUploader from './components/PDFUploader';
+import StampEditor from './components/StampEditor';
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('library');
   const [editingSeal, setEditingSeal] = useState(null);
+  const [currentPDF, setCurrentPDF] = useState(null);
 
   const handleCreateSuccess = () => {
     setActiveTab('library');
@@ -28,10 +31,24 @@ function App() {
     setActiveTab('generator');
   };
 
+  const handlePDFLoaded = (pdfData) => {
+    console.log('PDF加载成功:', pdfData);
+  };
+
+  const handleStampClick = (pdfData) => {
+    setCurrentPDF(pdfData);
+    setActiveTab('stamp-editor');
+  };
+
+  const handleBackFromEditor = () => {
+    setActiveTab('pdf-upload');
+    setCurrentPDF(null);
+  };
+
   const tabs = [
     {
       key: 'library',
-      label: '公章管理',
+      label: '📦 公章管理',
       children: (
         <SealLibrary
           onEdit={handleEdit}
@@ -41,13 +58,38 @@ function App() {
     },
     {
       key: 'generator',
-      label: '创建公章',
+      label: '✨ 创建公章',
       children: (
         <SealGenerator
           seal={editingSeal}
           onSuccess={handleCreateSuccess}
           onCancel={() => setActiveTab('library')}
         />
+      )
+    },
+    {
+      key: 'pdf-upload',
+      label: '📄 PDF盖章',
+      children: (
+        <PDFUploader
+          onPDFLoaded={handlePDFLoaded}
+          onStampClick={handleStampClick}
+        />
+      )
+    },
+    {
+      key: 'stamp-editor',
+      label: '🖊️ 盖章编辑器',
+      disabled: !currentPDF,
+      children: currentPDF ? (
+        <StampEditor
+          pdfData={currentPDF}
+          onBack={handleBackFromEditor}
+        />
+      ) : (
+        <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>
+          请先上传PDF文件
+        </div>
       )
     }
   ];
