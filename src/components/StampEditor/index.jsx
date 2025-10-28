@@ -1,13 +1,20 @@
 /**
- * 盖章编辑器主组件
+ * 盖章编辑器主组件（最终修复版 - 完整版）
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { Card, Select, Slider, Button, Space, message, InputNumber, Row, Col, Divider } from 'antd';
-import { LeftOutlined, RightOutlined, DownloadOutlined, UndoOutlined } from '@ant-design/icons';
+import { LeftOutlined, RightOutlined, DownloadOutlined } from '@ant-design/icons';
 import { loadSeals } from '../../utils/storage';
 import { sealCache } from '../../utils/sealCache';
-import { stampPDF, savePDF, downloadPDF, getPageSize, renderPDFToCanvas } from '../../utils/pdfHandler';
+import { 
+  stampPDF, 
+  savePDF, 
+  downloadPDF, 
+  getPageSize, 
+  renderPDFToCanvas,
+  updateRenderBytes 
+} from '../../utils/pdfHandler';
 import { handleSealDrag, quickPosition, LastPositionManager } from '../../utils/snapHelper';
 import './index.css';
 
@@ -32,11 +39,17 @@ export default function StampEditor({ pdfData, onBack }) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // 页面尺寸
-  const [pageSize, setPageSize] = useState({ width: 595, height: 842 }); // A4默认尺寸
+  const [pageSize, setPageSize] = useState({ width: 595, height: 842 });
 
   // Canvas引用
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+
+  // 渲染状态
+  const [isRendering, setIsRendering] = useState(false);
+
+  // ⚠️ 保存当前用于渲染的字节数组
+  const [renderBytes, setRenderBytes] = useState(null);
 
   // 加载公章列表
   useEffect(() => {
@@ -47,25 +60,74 @@ export default function StampEditor({ pdfData, onBack }) {
     }
   }, []);
 
-  // 渲染PDF页面到Canvas
+  // ⚠️ 初始化渲染字节数组
   useEffect(() => {
-    const renderPDF = async () => {
-      if (!pdfData || !pdfData.pdfjsDoc || !canvasRef.current) return;
-
-      try {
-        await renderPDFToCanvas(pdfData.pdfjsDoc, currentPage, canvasRef.current, 1);
-
-        // 更新页面尺寸
-        const size = getPageSize(pdfData.pdfDoc, currentPage);
-        setPageSize(size);
-      } catch (error) {
-        console.error('PDF渲染失败:', error);
-        message.error('PDF渲染失败');
+    if (pdfData) {
+      console.log('========== StampEditor: 检查 PDF 数据 ==========');
+      console.log('📦 pdfData 字段:', Object.keys(pdfData));
+      console.log('📦 pdfBytesForRender:', !!pdfData.pdfBytesForRender);
+      console.log('📦 pdfBytesForRender 类型:', pdfData.pdfBytesForRender?.constructor.name);
+      console.log('📦 pdfBytesForRender 长度:', pdfData.pdfBytesForRender?.byteLength || pdfData.pdfBytesForRender?.length);
+      
+      if (pdfData.pdfBytesForRender) {
+        console.log('✅ 设置渲染字节数组');
+        setRenderBytes(pdfData.pdfBytesForRender);
+      } else {
+        console.error('❌ 没有找到 pdfBytesForRender！');
+        message.error('PDF 数据缺失，请重新上传');
       }
-    };
+      
+      console.log('========== 检查完成 ==========');
+    }
+  }, [pdfData]);
 
-    renderPDF();
+  // 获取页面尺寸
+  useEffect(() => {
+    if (pdfData && pdfData.pdfDoc) {
+      const size = getPageSize(pdfData.pdfDoc, currentPage);
+      setPageSize(size);
+    }
   }, [pdfData, currentPage]);
+
+  // ⚠️ 渲染 PDF 到 Canvas
+  useEffect(() => {
+    if (renderBytes && canvasRef.current) {
+      renderPDFPage();
+    }
+  }, [renderBytes, currentPage]);
+
+  // 渲染 PDF 页面
+  const renderPDFPage = async () => {
+    if (!renderBytes || !canvasRef.current) {
+      console.error('❌ renderBytes 或 canvas 不存在');
+      console.error('renderBytes:', !!renderBytes);
+      console.error('canvas:', !!canvasRef.current);
+      return;
+    }
+
+    setIsRendering(true);
+
+    try {
+      console.log('========== StampEditor: 开始渲染 PDF 页面 ==========');
+      console.log('📄 当前页码:', currentPage);
+      console.log('📦 renderBytes 类型:', renderBytes.constructor.name);
+      console.log('📦 renderBytes 长度:', renderBytes.byteLength || renderBytes.length);
+
+      await renderPDFToCanvas(
+        renderBytes,
+        currentPage,
+        canvasRef.current,
+        1
+      );
+
+      console.log('✅ StampEditor: PDF 页面渲染成功');
+    } catch (error) {
+      console.error('❌ StampEditor: PDF 渲染失败:', error);
+      message.error(`PDF 渲染失败: ${error.message}`);
+    } finally {
+      setIsRendering(false);
+    }
+  };
 
   // 键盘微调
   useEffect(() => {
@@ -107,7 +169,6 @@ export default function StampEditor({ pdfData, onBack }) {
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // 检查是否点击在公章上
     if (
       mouseX >= sealPosition.x &&
       mouseX <= sealPosition.x + sealSize &&
@@ -133,11 +194,9 @@ export default function StampEditor({ pdfData, onBack }) {
     let newX = mouseX - dragStart.x;
     let newY = mouseY - dragStart.y;
 
-    // 边界限制
     newX = Math.max(0, Math.min(pageSize.width - sealSize, newX));
     newY = Math.max(0, Math.min(pageSize.height - sealSize, newY));
 
-    // 吸附处理
     const snapped = handleSealDrag(newX, newY, pageSize.width, pageSize.height, sealSize, sealSize);
 
     setSealPosition({ x: snapped.x, y: snapped.y });
@@ -180,6 +239,9 @@ export default function StampEditor({ pdfData, onBack }) {
         return;
       }
 
+      console.log('========== 开始盖章 ==========');
+
+      // 1. 盖章
       await stampPDF(pdfData.pdfDoc, currentPage, sealImage, {
         x: sealPosition.x,
         y: sealPosition.y,
@@ -189,11 +251,19 @@ export default function StampEditor({ pdfData, onBack }) {
         rotation: sealRotation
       });
 
-      // 保存位置
+      // 2. 保存位置
       LastPositionManager.save(sealPosition.x, sealPosition.y);
 
+      // 3. ⚠️ 更新渲染字节数组
+      console.log('🔄 盖章成功，更新预览...');
+      const newRenderBytes = await updateRenderBytes(pdfData.pdfDoc);
+      console.log('✅ 新的渲染字节数组长度:', newRenderBytes.byteLength || newRenderBytes.length);
+      setRenderBytes(newRenderBytes);
+
       message.success('盖章成功！');
+      console.log('========== 盖章完成 ==========');
     } catch (error) {
+      console.error('❌ 盖章失败:', error);
       message.error(error.message);
     }
   };
@@ -220,14 +290,12 @@ export default function StampEditor({ pdfData, onBack }) {
       {/* 工具栏 */}
       <Card className="toolbar">
         <Space direction="vertical" style={{ width: '100%' }} size="large">
-          {/* 返回按钮 */}
           <Button icon={<LeftOutlined />} onClick={onBack}>
             返回
           </Button>
 
           <Divider />
 
-          {/* 选择公章 */}
           <div>
             <div className="toolbar-label">选择公章</div>
             <Select
@@ -244,7 +312,6 @@ export default function StampEditor({ pdfData, onBack }) {
             </Select>
           </div>
 
-          {/* 快捷定位 */}
           <div>
             <div className="toolbar-label">快捷定位</div>
             <Space wrap>
@@ -252,11 +319,10 @@ export default function StampEditor({ pdfData, onBack }) {
               <Button size="small" onClick={() => handleQuickPosition('topRight')}>↗右上</Button>
               <Button size="small" onClick={() => handleQuickPosition('bottomLeft')}>↙左下</Button>
               <Button size="small" onClick={() => handleQuickPosition('bottomRight')}>↘右下</Button>
-              <Button size="small" onClick={() => handleQuickPosition('center')}>●居中</Button>
+              <Button size="small" onClick={() => handleQuickPosition('center')}>◉居中</Button>
             </Space>
           </div>
 
-          {/* 大小调整 */}
           <div>
             <div className="toolbar-label">大小: {sealSize}px</div>
             <Slider
@@ -267,7 +333,6 @@ export default function StampEditor({ pdfData, onBack }) {
             />
           </div>
 
-          {/* 透明度 */}
           <div>
             <div className="toolbar-label">透明度: {sealOpacity.toFixed(1)}</div>
             <Slider
@@ -279,7 +344,6 @@ export default function StampEditor({ pdfData, onBack }) {
             />
           </div>
 
-          {/* 旋转角度 */}
           <div>
             <div className="toolbar-label">旋转: {sealRotation}°</div>
             <Slider
@@ -290,7 +354,6 @@ export default function StampEditor({ pdfData, onBack }) {
             />
           </div>
 
-          {/* 坐标显示 */}
           <div>
             <div className="toolbar-label">坐标位置</div>
             <Row gutter={8}>
@@ -321,7 +384,6 @@ export default function StampEditor({ pdfData, onBack }) {
 
           <Divider />
 
-          {/* 操作按钮 */}
           <Space direction="vertical" style={{ width: '100%' }}>
             <Button type="primary" block onClick={handleApplyToPage}>
               应用到当前页
@@ -342,13 +404,13 @@ export default function StampEditor({ pdfData, onBack }) {
             <Space>
               <Button
                 icon={<LeftOutlined />}
-                disabled={currentPage === 0}
+                disabled={currentPage === 0 || isRendering}
                 onClick={() => setCurrentPage(prev => prev - 1)}
               >
                 上一页
               </Button>
               <Button
-                disabled={currentPage === pdfData?.pageCount - 1}
+                disabled={currentPage === pdfData?.pageCount - 1 || isRendering}
                 onClick={() => setCurrentPage(prev => prev + 1)}
               >
                 下一页
@@ -357,7 +419,8 @@ export default function StampEditor({ pdfData, onBack }) {
             </Space>
           }
         >
-          <div className="canvas-container">
+          <div className="canvas-container" style={{ position: 'relative' }}>
+            {/* PDF Canvas */}
             <canvas
               ref={canvasRef}
               width={pageSize.width}
@@ -369,24 +432,45 @@ export default function StampEditor({ pdfData, onBack }) {
               style={{
                 border: '1px solid #d9d9d9',
                 cursor: isDragging ? 'grabbing' : 'default',
-                background: 'white'
+                background: 'white',
+                display: 'block'
               }}
             />
 
+            {/* 加载提示 */}
+            {isRendering && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(255, 255, 255, 0.9)',
+                padding: '20px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                zIndex: 10
+              }}>
+                加载中...
+              </div>
+            )}
+
             {/* 公章图层 */}
-            {selectedSealId && (
+            {selectedSealId && !isRendering && (
               <img
                 src={getSelectedSealImage()}
                 alt="seal"
                 className="seal-layer"
                 style={{
+                  position: 'absolute',
                   left: sealPosition.x,
                   top: sealPosition.y,
                   width: sealSize,
                   height: sealSize,
                   opacity: sealOpacity,
                   transform: `rotate(${sealRotation}deg)`,
-                  cursor: isDragging ? 'grabbing' : 'grab'
+                  cursor: isDragging ? 'grabbing' : 'grab',
+                  pointerEvents: 'auto',
+                  userSelect: 'none'
                 }}
                 onMouseDown={handleMouseDown}
               />

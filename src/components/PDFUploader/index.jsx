@@ -1,10 +1,10 @@
 /**
- * PDF上传组件
+ * PDF上传组件（带诊断日志）
  */
 
 import { useState } from 'react';
 import { Upload, Button, List, Card, Space, message, Tag } from 'antd';
-import { InboxOutlined, FileOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
+import { InboxOutlined, FileOutlined, DeleteOutlined } from '@ant-design/icons';
 import { loadPDF, formatFileSize } from '../../utils/pdfHandler';
 import './index.css';
 
@@ -19,22 +19,38 @@ export default function PDFUploader({ onPDFLoaded, onStampClick }) {
     setUploading(true);
 
     try {
+      console.log('========== 开始上传 PDF ==========');
+      console.log('📄 文件名:', file.name);
+      
       // 加载PDF
       const pdfData = await loadPDF(file);
+      
+      // ⚠️ 诊断日志：检查返回的数据
+      console.log('========== loadPDF 返回数据检查 ==========');
+      console.log('✅ 返回的字段:', Object.keys(pdfData));
+      console.log('📦 pdfDoc:', !!pdfData.pdfDoc);
+      console.log('📦 pdfBytesForRender:', !!pdfData.pdfBytesForRender);
+      console.log('📦 pdfBytesForRender 类型:', pdfData.pdfBytesForRender?.constructor.name);
+      console.log('📦 pdfBytesForRender 长度:', pdfData.pdfBytesForRender?.byteLength || pdfData.pdfBytesForRender?.length);
+      console.log('========== 检查完成 ==========');
 
       // 添加到列表
-      setPdfFiles(prev => [...prev, {
+      const fileWithId = {
         id: Date.now(),
         ...pdfData
-      }]);
+      };
+      
+      setPdfFiles(prev => [...prev, fileWithId]);
 
       message.success(`${file.name} 上传成功`);
 
       // 通知父组件
       if (onPDFLoaded) {
+        console.log('📤 传递 PDF 数据给父组件');
         onPDFLoaded(pdfData);
       }
     } catch (error) {
+      console.error('❌ PDF 上传失败:', error);
       message.error(error.message);
     } finally {
       setUploading(false);
@@ -52,6 +68,13 @@ export default function PDFUploader({ onPDFLoaded, onStampClick }) {
 
   // 点击盖章按钮
   const handleStamp = (pdfData) => {
+    console.log('========== 点击开始盖章 ==========');
+    console.log('📦 传递的 pdfData 字段:', Object.keys(pdfData));
+    console.log('📦 pdfDoc:', !!pdfData.pdfDoc);
+    console.log('📦 pdfBytesForRender:', !!pdfData.pdfBytesForRender);
+    console.log('📦 pdfBytesForRender 类型:', pdfData.pdfBytesForRender?.constructor.name);
+    console.log('========== 传递完成 ==========');
+    
     if (onStampClick) {
       onStampClick(pdfData);
     }
