@@ -6,19 +6,19 @@ export const SEAL_PRESETS = {
   standard: {
     name: '标准公章',
     diameter: 200,
-    lineWidth: 4,          // diameter / 50
-    fontSize: 20,          // 根据字数动态调整
-    starSize: 50,          // diameter * 0.25
-    starOffsetY: 15,       // diameter * 0.075
+    lineWidth: 5,          // diameter / 40 (更厚实的边框)
+    fontSize: 24,          // 提升初始字号
+    starSize: 70,          // diameter * 0.35 (更大的五角星)
+    starOffsetY: 10,       // diameter * 0.05 (更接近几何中心)
     color: '#FF0000'
   },
   contract: {
     name: '合同专用章',
     diameter: 180,
-    lineWidth: 3.6,        // 180 / 50
-    fontSize: 18,
-    starSize: 45,          // 180 * 0.25
-    starOffsetY: 13.5,     // 180 * 0.075
+    lineWidth: 4.5,
+    fontSize: 22,
+    starSize: 63,
+    starOffsetY: 9,
     color: '#FF0000',
     showSealType: true,
     sealType: '合同专用章'
@@ -26,10 +26,10 @@ export const SEAL_PRESETS = {
   finance: {
     name: '财务专用章',
     diameter: 160,
-    lineWidth: 3.2,        // 160 / 50
-    fontSize: 16,
-    starSize: 40,          // 160 * 0.25
-    starOffsetY: 12,       // 160 * 0.075
+    lineWidth: 4,
+    fontSize: 20,
+    starSize: 56,
+    starOffsetY: 8,
     color: '#FF0000',
     showSealType: true,
     sealType: '财务专用章'
@@ -41,15 +41,14 @@ export const SEAL_PRESETS = {
  */
 export function calculateFontSize(companyName, diameter) {
   const charCount = companyName.length;
-  const baseSize = diameter * 0.1;  // 基础比例：直径的 10%
-
-  // 字数越多，字号相应缩小
+  const baseSize = diameter * 0.12;  // 提升比例：直径的 12%
+  
   if (charCount <= 8) {
     return baseSize;
   } else if (charCount <= 14) {
     return baseSize * 0.9;
   } else {
-    return baseSize * 0.8;  // 15-20字
+    return baseSize * 0.85; // 针对长字符名进行微调
   }
 }
 
@@ -58,11 +57,11 @@ export function calculateFontSize(companyName, diameter) {
  */
 export function calculateSealParams(diameter, companyName) {
   return {
-    lineWidth: diameter / 50,
+    lineWidth: diameter / 40,
     fontSize: calculateFontSize(companyName, diameter),
-    starSize: diameter * 0.25,
-    starOffsetY: diameter * 0.075,
-    serialNumberFontSize: diameter * 0.06  // 编号字号
+    starSize: diameter * 0.35,
+    starOffsetY: diameter * 0.05,
+    serialNumberFontSize: diameter * 0.06
   };
 }
 

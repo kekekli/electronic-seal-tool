@@ -174,22 +174,6 @@ export async function savePDF(pdfDoc, originalFileName) {
   }
 }
 
-/**
- * 下载PDF文件
- */
-export function downloadPDF(pdfBytes, fileName) {
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.click();
-
-  URL.revokeObjectURL(url);
-
-  console.log('✅ PDF 下载完成:', fileName);
-}
 
 /**
  * 格式化文件大小
@@ -205,99 +189,81 @@ export function formatFileSize(bytes) {
 }
 
 /**
- * 渲染PDF页面为Canvas（终极修复版）
- * ⚠️ 使用完全独立的字节数组，避免所有 Buffer 问题
+ * 渲染PDF页面为Canvas
+ * ⚠️ 增加显式销毁机制，防止多任务下 Canvas 锁定
  */
+let currentLoadingTask = null;
+
 export async function renderPDFToCanvas(pdfBytesForRender, pageIndex, canvas, scale = 1) {
   try {
-    console.log('========== 开始渲染 PDF ==========');
-    console.log('📄 页码:', pageIndex);
-    console.log('📊 缩放:', scale);
-    console.log('🎨 Canvas:', canvas);
-    console.log('📦 字节数组类型:', pdfBytesForRender?.constructor.name);
-    console.log('📦 字节数组长度:', pdfBytesForRender?.byteLength || pdfBytesForRender?.length || 0);
+    // 如果有正在进行的任务，先销毁
+    if (currentLoadingTask) {
+      await currentLoadingTask.destroy();
+    }
 
-    // ⚠️ 检查字节数组是否有效
     if (!pdfBytesForRender || pdfBytesForRender.length === 0) {
       throw new Error('PDF 字节数组为空或无效');
     }
 
-    // 1. 加载 PDF 文档（使用 pdfjs-dist）
-    // ⚠️ 关键：创建新的 Uint8Array 副本，确保数据独立
     const bytesCopy = new Uint8Array(pdfBytesForRender);
-    console.log('✅ 创建字节数组副本，长度:', bytesCopy.length);
 
-    const loadingTask = pdfjsLib.getDocument({ 
+    currentLoadingTask = pdfjsLib.getDocument({ 
       data: bytesCopy,
-      // ⚠️ 禁用自动获取，避免 worker 通信问题
       disableAutoFetch: true,
       disableStream: true
     });
     
-    const pdf = await loadingTask.promise;
-    console.log('✅ PDF 加载成功（pdfjs-dist）');
-    console.log('📋 总页数:', pdf.numPages);
-
-    // 2. 获取指定页面（pdf.js 页码从 1 开始）
+    const pdf = await currentLoadingTask.promise;
     const page = await pdf.getPage(pageIndex + 1);
-    console.log('✅ 获取页面成功，页码:', pageIndex + 1);
-
-    // 3. 设置视口（缩放）
     const viewport = page.getViewport({ scale: scale });
-    console.log('📐 视口尺寸:', viewport.width, 'x', viewport.height);
 
-    // 4. 设置 Canvas 尺寸
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    console.log('🎨 Canvas 尺寸已设置');
 
-    // 5. 获取渲染上下文
     const context = canvas.getContext('2d');
-
-    // 6. 清空 Canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 7. 渲染 PDF 页面到 Canvas
-    const renderContext = {
+    await page.render({
       canvasContext: context,
       viewport: viewport
-    };
-
-    console.log('🔄 开始渲染到 Canvas...');
-    await page.render(renderContext).promise;
-    console.log('✅ 渲染完成！');
-    console.log('========== 渲染结束 ==========');
+    }).promise;
 
     return {
       width: viewport.width,
       height: viewport.height
     };
   } catch (error) {
+    if (error.name === 'RenderingCancelledException') return null;
     console.error('❌ 渲染失败:', error);
-    console.error('错误堆栈:', error.stack);
-    throw new Error(`渲染PDF失败: ${error.message}`);
+    throw error;
   }
 }
 
 /**
- * 盖章后更新渲染用的字节数组（终极修复版）
- * ⚠️ 生成全新的字节数组，确保数据独立
+ * 盖章后更新渲染用的字节数组
  */
 export async function updateRenderBytes(pdfDoc) {
-  try {
-    console.log('🔄 更新渲染字节数组...');
-    
-    // 获取最新的 PDF 字节
-    const newPdfBytes = await pdfDoc.save();
-    console.log('✅ 获取最新 PDF 字节，长度:', newPdfBytes.byteLength);
-    
-    // ⚠️ 创建完全独立的 Uint8Array
-    const newRenderBytes = new Uint8Array(newPdfBytes);
-    console.log('✅ 创建新的 Uint8Array，长度:', newRenderBytes.length);
-    
-    return newRenderBytes;
-  } catch (error) {
-    console.error('❌ 更新渲染字节数组失败:', error);
-    throw new Error(`更新失败: ${error.message}`);
-  }
+  const newPdfBytes = await pdfDoc.save();
+  return new Uint8Array(newPdfBytes); 
+}
+
+/**
+ * 下载PDF文件（强制清理版）
+ */
+export function downloadPDF(pdfBytes, fileName) {
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  
+  document.body.appendChild(link);
+  link.click();
+  
+  // 延迟回收资源，确保浏览器已响应下载指令
+  setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 200);
 }

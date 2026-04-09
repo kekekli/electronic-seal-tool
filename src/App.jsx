@@ -51,6 +51,7 @@ function App() {
       label: '📦 公章管理',
       children: (
         <SealLibrary
+          activeTab={activeTab}
           onEdit={handleEdit}
           onCreateNew={handleCreateNew}
         />

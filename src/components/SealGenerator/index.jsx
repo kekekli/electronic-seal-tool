@@ -24,6 +24,7 @@ export default function SealGenerator({ onSuccess, onCancel }) {
   const [showSealType, setShowSealType] = useState(false);
   const [sealType, setSealType] = useState('');
   const [sealName, setSealName] = useState('');
+  const [fontFamily, setFontFamily] = useState('"SimSun", "STZhongsong", "Songti SC", serif');
 
   // 防抖处理
   const debouncedCompanyName = useDebounce(companyName, 200);
@@ -44,9 +45,10 @@ export default function SealGenerator({ onSuccess, onCancel }) {
       showSerialNumber,
       serialNumber: debouncedSerialNumber,
       showSealType,
-      sealType: debouncedSealType
+      sealType: debouncedSealType,
+      fontFamily
     });
-  }, [debouncedCompanyName, preset, debouncedTextSpacing, color, showSerialNumber, debouncedSerialNumber, showSealType, debouncedSealType]);
+  }, [debouncedCompanyName, preset, debouncedTextSpacing, color, showSerialNumber, debouncedSerialNumber, showSealType, debouncedSealType, fontFamily]);
 
   // 处理预设切换
   const handlePresetChange = (e) => {
@@ -88,6 +90,7 @@ export default function SealGenerator({ onSuccess, onCancel }) {
       serialNumber: showSerialNumber ? serialNumber : '',
       showSealType,
       sealType: showSealType ? sealType : '',
+      fontFamily,
       imageData,
       createdAt: Date.now()
     };
@@ -195,6 +198,13 @@ export default function SealGenerator({ onSuccess, onCancel }) {
                 onChange={(_, hex) => setColor(hex)}
                 showText
               />
+            </Form.Item>
+
+            <Form.Item label="字体选择">
+              <Radio.Group value={fontFamily} onChange={(e) => setFontFamily(e.target.value)}>
+                <Radio value={'"SimSun", "STZhongsong", "Songti SC", serif'}>宋体 (推荐)</Radio>
+                <Radio value={'"SimHei", "Microsoft YaHei", "PingFang SC", sans-serif'}>黑体</Radio>
+              </Radio.Group>
             </Form.Item>
 
             <Form.Item label="公章名称（可选）">

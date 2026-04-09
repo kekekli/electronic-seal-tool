@@ -10,7 +10,7 @@ import { exportSealsConfig, importSealsConfig } from '../../utils/configManager'
 import { sealCache } from '../../utils/sealCache';
 import './index.css';
 
-export default function SealLibrary({ onEdit, onCreateNew }) {
+export default function SealLibrary({ onEdit, onCreateNew, activeTab }) {
   const [seals, setSeals] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -23,9 +23,11 @@ export default function SealLibrary({ onEdit, onCreateNew }) {
   };
 
   useEffect(() => {
-    console.log('🔄 组件挂载，加载公章列表');
-    loadSealList();
-  }, []);
+    if (activeTab === 'library') {
+      console.log('🔄 标签页切换回库，刷新列表');
+      loadSealList();
+    }
+  }, [activeTab]);
 
   // 删除公章（无确认版本）
   const handleDelete = (id) => {
